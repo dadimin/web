@@ -1,0 +1,374 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dadimin Notes</title>
+  <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+  <style>
+ .text-center { text-align: center; }
+.mt-3, .mb-3 { margin: 1rem 0; }
+.mb-1 { margin-bottom: 0.25rem; }
+.form-label { font-weight: bold; font-size: 0.8rem; margin-bottom: 0; }
+.form-control, .btn { font-size: 0.8rem; padding: 0.25rem 0.5rem; }
+.btn { font-weight: bold; }
+.table { border-collapse: collapse; border: 1px solid #dee2e6; }
+.table th, .table td { border: 1px solid #dee2e6; font-size: 0.8rem; }
+.table-responsive { overflow-x: auto; }
+.bg-success { background-color: #28a745; }
+.text-white { color: #fff; }
+.cellActions { display: flex; justify-content: center; align-items: center; gap: 0.5rem; }
+.icon-btn { background: none; border: none; font-size: 1.2rem; cursor: pointer; }
+
+@media (max-width: 768px) {
+  .icon-btn { font-size: 1rem; }
+  .form-label, .form-control, .btn, .table th, .table td { font-size: 0.7rem; }
+  .btn { padding: 0.2rem 0.4rem; }
+  .cellActions { flex-direction: column; }
+}
+
+@media (max-width: 576px) {
+  .icon-btn { font-size: 0.8rem; }
+  .form-label, .form-control, .btn, .table th, .table td { font-size: 0.65rem; }
+  .btn { padding: 0.15rem 0.35rem; }
+  .cellActions { gap: 0.2rem; }
+}
+  </style>
+  <script>
+    const firebaseConfig = {
+      databaseURL: "https://seven-squares-studios-staging.firebaseio.com",
+    };
+  </script>
+  <link href="https://cdn.plyr.io/3.5.6/plyr.css" rel="stylesheet"/>
+  <script src="https://cdn.plyr.io/3.5.6/plyr.js"></script>
+  <script>
+        const player = new Plyr('#player');
+  </script>
+</head>
+<body>
+<div class="container">
+  <form id="websiteForm">
+    <h3 class="text-center mt-3">Dadimin Notes</h3>
+    <!-- <div class="row mb-1 mt-1 align-items-center">
+      <div class="col-auto">
+        <label for="title" class="form-label">Title:</label>
+      </div>
+      <div class="col">
+        <input type="text" class="form-control" id="title" name="title" required placeholder="Title">
+      </div>
+    </div> -->
+    <div class="row mb-1 mt-1 align-items-center">
+      <div class="col-auto">
+        <label for="url" class="form-label">URL Website :</label>
+      </div>
+      <div class="col">
+        <input type="text" class="form-control" id="url" name="url" required placeholder="Url Address">
+      </div>
+    </div>
+      
+    <div class="text-center mb-3 mt-3">
+      <button type="button" class="btn btn-primary" onclick="addWebsite()">Submit</button>
+    </div>
+    <div class="text-center" id="notification"></div>
+  </form>
+  <div class="table-responsive">
+    <table class="table table-striped">
+      <thead class="bg-success text-white">
+        <tr>
+          <th style="width: 1%; text-align: start;">No.</th>
+          <th style="width: 1%; text-align: center;">Actions</th>
+          <!-- <th style="width: 38%;">Title</th> -->
+          <th style="width: 60%;text-align: center;">Website</th>
+        </tr>
+      </thead>
+      <tbody id="websiteTableBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <!-- <h5 class="modal-title" id="editModalLabel">Edit Data</h5> -->
+        <h5 class="modal-url" id="editModalLabel">Edit Data</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="editForm">  
+          <!-- <div class="form-group">
+            <label for="editTitle">Title</label>
+            <input type="text" class="form-control" id="editTitle" required>
+          </div> -->
+          <div class="form-group">
+            <label for="editUrl">Url Website</label>
+            <input type="text" class="form-control" id="editUrl" required>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="saveEditButton">Save Changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function editUrl(key, website) {
+  currentEditKey = key;
+  // document.getElementById('editTitle').value = website.title;
+  document.getElementById('editUrl').value = website.url;
+
+  $('#editModal').modal('show');
+}
+
+document.getElementById('saveEditButton').addEventListener('click', function () {
+  // const title = document.getElementById('editTitle').value;
+  const url = document.getElementById('editUrl').value;
+
+  // if (title && url) {
+  if (url) {
+    const updatedWebsite = {
+      // title: title,
+      url: url
+    };
+  
+    database.ref('/note/' + currentEditKey).update(updatedWebsite)
+      .then(() => {
+        $('#editModal').modal('hide');
+        showNotification('Website updated successfully!', 'success');
+      })
+      .catch((error) => {
+        console.error("Error updating website:", error);
+        showNotification('Error updating website!', 'danger');
+      });
+  } else {
+    showNotification('All fields are required!', 'warning');
+  }
+});
+</script>
+
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <!-- <h5 class="modal-title" id="deleteModalLabel">Confirm Deletion</h5> -->
+        <h5 class="modal-url" id="deleteModalLabel">Confirm Deletion</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        Are you sure you want to delete this url?
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger" id="confirmDelete">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="notification" style="position: fixed; top: 10px; right: 10px; display: none; padding: 10px; background-color: green; color: white; border-radius: 5px;"></div>
+
+<script>
+  let deleteKey = null;
+  let deleteRow = null;
+
+  // function deleteTitle(key, row) {
+  function deleteUrl(key, row) {
+    deleteKey = key;
+    deleteRow = row;
+    $('#deleteModal').modal('show');
+  }
+
+  document.getElementById('confirmDelete').addEventListener('click', function () {
+    if (deleteKey) {
+      database.ref(`/note/${deleteKey}`).remove()
+        .then(() => {
+          if (deleteRow) deleteRow.remove();
+          showNotification('Website deleted successfully!', 'success');
+          $('#deleteModal').modal('hide');
+        })
+        .catch((error) => {
+          console.error("Error deleting website:", error);
+          showNotification('Error deleting website!', 'danger');
+        });
+    }
+  });
+
+  document.addEventListener("keydown", function (event) {
+    if (
+      event.key === "Enter" &&
+      $('#deleteModal').hasClass('show') &&
+      !["INPUT", "TEXTAREA"].includes(document.activeElement.tagName)
+    ) {
+      event.preventDefault();
+      document.getElementById("confirmDelete").click();
+    }
+  });
+
+  function showNotification(message, type) {
+    const notification = document.getElementById('notification');
+    notification.textContent = message;
+    notification.style.display = 'block';
+    notification.style.backgroundColor = type === 'success' ? 'green' : 'red';
+
+    setTimeout(() => {
+      notification.style.display = 'none';
+    }, 3000);
+  }
+</script>
+
+<div class="modal fade" id="iframeModal" tabindex="-1" role="dialog" aria-labelledby="iframeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <!-- <h5 class="modal-title" id="iframeModalLabel">Website Preview</h5> -->
+          <h5 class="modal-url" id="iframeModalLabel">Website Preview</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <iframe id="contentIframe" scrolling="no" allowfullscreen="true" frameborder="0" width="100%" height="420px"></iframe>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    const websiteTableBody = document.getElementById('websiteTableBody');
+    let rowNumber = 0;
+    let currentEditKey = null;
+  
+    database.ref('/note').on('child_added', (snapshot) => {
+      const website = snapshot.val();
+      const newRow = createTableRow(snapshot.key, website);
+      websiteTableBody.prepend(newRow);
+    });
+  
+    function createTableRow(key, website) {
+      const newRow = document.createElement('tr');
+      const cellNumber = document.createElement('td');
+      const cellActions = document.createElement('td');
+      // const cellTitle = document.createElement('td');
+      const cellUrl = document.createElement('td');
+      cellNumber.textContent = ++rowNumber;
+      // cellTitle.innerHTML = `
+      // <p style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis;">
+      //   ${website.title}
+      // </p>`;
+      cellUrl.innerHTML = `
+      <p style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis;">
+        ${website.url}
+      </p>`;
+  
+      const actions = [
+    // { icon: 'fas fa-edit', tooltip: 'Edit', action: () => editTitle(key, website) },
+    { icon: 'fas fa-edit', tooltip: 'Edit', action: () => editUrl(key, website) },
+    // { icon: 'fas fa-trash', tooltip: 'Delete', action: () => deleteTitle(key, newRow) },
+    { icon: 'fas fa-trash', tooltip: 'Delete', action: () => deleteUrl(key, newRow) },
+    { icon: 'fas fa-copy', tooltip: 'Copy', action: () => copyToClipboard(website.url) },
+    { icon: 'fas fa-external-link-alt', tooltip: 'Open in new tab', action: () => window.open(website.url, '_blank') },
+    // { icon: 'fas fa-eye', tooltip: 'Open in iframe', action: () => openInIframe(website.url) },
+      ];
+
+      function openInIframe(url) {
+    const contentIframe = document.getElementById('contentIframe');
+    if (contentIframe) {
+        contentIframe.src = url;
+
+        $('#iframeModal').modal({
+            backdrop: 'static',
+            keyboard: false
+        });
+        
+        $('#iframeModal').modal('show');
+          } else {
+        alert('Iframe element not found!');
+          }
+        } 
+ 
+    $('#iframeModal').on('hidden.bs.modal', function () {
+        const contentIframe = document.getElementById('contentIframe');
+        if (contentIframe) {
+            contentIframe.src = '';
+        }
+    });
+  
+      actions.forEach(({ icon, tooltip, action }) => {
+        const button = createIconButton(icon, tooltip, action);
+        cellActions.appendChild(button);
+      });
+  
+      cellActions.style.display = 'flex';
+      // newRow.append(cellNumber, cellActions, cellTitle, cellUrl);
+      newRow.append(cellNumber, cellActions, cellUrl, cellUrl);
+      return newRow;
+    }
+  
+    function addWebsite() {
+      // const fields = ['url', 'title'];
+      const fields = ['url'];
+      const values = fields.reduce((acc, field) => {
+        acc[field] = document.getElementById(field).value.trim();
+        return acc;
+      }, {});
+  
+      if (!values.url) {
+        alert('Display Code are required!');
+        return;
+      }
+  
+      const newWebsite = {
+        url: values.url || '',
+        // title: values.title || ''
+      };
+  
+      database.ref('/note').push(newWebsite)
+        .then(() => {
+          document.getElementById('websiteForm').reset();
+          showNotification('Website added successfully!', 'success');
+        })
+        .catch((error) => {
+          console.error("Error adding website:", error);
+          showNotification('Error adding website!', 'danger');
+        });
+    }
+  
+    function createIconButton(iconClass, tooltip, onClick) {
+      const button = document.createElement('button');
+      button.classList.add('btn', 'btn-sm', 'btn-light', 'mx-1');
+      // button.setAttribute('title', tooltip);
+      button.setAttribute('url', tooltip);
+      button.innerHTML = `<i class="${iconClass}"></i>`;
+      button.addEventListener('click', onClick);
+      return button;
+    }
+  
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text)
+        .then(() => showNotification('URL copied to clipboard!', 'success'))
+        .catch(() => showNotification('Failed to copy URL!', 'danger'));
+    }
+    
+    function showNotification(message, type) {
+      const notificationElement = document.getElementById('notification');
+      notificationElement.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+      setTimeout(() => notificationElement.innerHTML = '', 3000);
+    }
+  </script>
+</body>
+</html>
