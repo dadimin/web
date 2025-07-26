@@ -142,7 +142,7 @@ document.getElementById('saveEditButton').addEventListener('click', function () 
       url: url
     };
   
-    database.ref('/note/' + currentEditKey).update(updatedWebsite)
+    database.ref('/notepad1/' + currentEditKey).update(updatedWebsite)
       .then(() => {
         $('#editModal').modal('hide');
         showNotification('Website updated successfully!', 'success');
@@ -193,7 +193,7 @@ document.getElementById('saveEditButton').addEventListener('click', function () 
 
   document.getElementById('confirmDelete').addEventListener('click', function () {
     if (deleteKey) {
-      database.ref(`/note/${deleteKey}`).remove()
+      database.ref(`/notepad1/${deleteKey}`).remove()
         .then(() => {
           if (deleteRow) deleteRow.remove();
           showNotification('Website deleted successfully!', 'success');
@@ -253,7 +253,7 @@ document.getElementById('saveEditButton').addEventListener('click', function () 
     let rowNumber = 0;
     let currentEditKey = null;
   
-    database.ref('/note').on('child_added', (snapshot) => {
+    database.ref('/notepad1').on('child_added', (snapshot) => {
       const website = snapshot.val();
       const newRow = createTableRow(snapshot.key, website);
       websiteTableBody.prepend(newRow);
@@ -337,7 +337,7 @@ document.getElementById('saveEditButton').addEventListener('click', function () 
         // title: values.title || ''
       };
   
-      database.ref('/note').push(newWebsite)
+      database.ref('/notepad1').push(newWebsite)
         .then(() => {
           document.getElementById('websiteForm').reset();
           showNotification('Website added successfully!', 'success');
